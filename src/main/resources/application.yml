@@ -1,0 +1,6 @@
+spring:
+  data:
+    elasticsearch:
+      cluster-name: elasticsearch
+      #证明spring与elasticsearch服务 连接走的不是http9200,而是tcp9300协议
+      cluster-nodes: 192.168.25.133:9300
