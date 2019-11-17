@@ -4,6 +4,10 @@ import com.leyou.es.pojo.Item;
 import com.leyou.es.repository.ItemRepository;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
@@ -13,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.aggregation.AggregatedPage;
 import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -115,6 +120,134 @@ public class EsTest {
         nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort("id").order(SortOrder.DESC));
         Page<Item> search1 = itemRepository.search(nativeSearchQueryBuilder.build());
         System.out.println(search1);
+
+    }
+
+    /**
+     * {
+     *   "took": 8,
+     *   "timed_out": false,
+     *   "_shards": {
+     *     "total": 1,
+     *     "successful": 1,
+     *     "skipped": 0,
+     *     "failed": 0
+     *   },
+     *   "hits": {
+     *     "total": 5,
+     *     "max_score": 1,
+     *     "hits": [
+     *       {
+     *         "_index": "heima_tc",
+     *         "_type": "item",
+     *         "_id": "1",
+     *         "_score": 1,
+     *         "_source": {
+     *           "id": 1,
+     *           "title": "小米手机7",
+     *           "category": "手机",
+     *           "brand": "小米",
+     *           "price": 3299,
+     *           "images": "http://image.leyou.com/13123.jpg"
+     *         }
+     *       },
+     *       {
+     *         "_index": "heima_tc",
+     *         "_type": "item",
+     *         "_id": "2",
+     *         "_score": 1,
+     *         "_source": {
+     *           "id": 2,
+     *           "title": "坚果手机R1",
+     *           "category": "手机",
+     *           "brand": "锤子",
+     *           "price": 3699,
+     *           "images": "http://image.leyou.com/13123.jpg"
+     *         }
+     *       },
+     *       {
+     *         "_index": "heima_tc",
+     *         "_type": "item",
+     *         "_id": "3",
+     *         "_score": 1,
+     *         "_source": {
+     *           "id": 3,
+     *           "title": "华为META10",
+     *           "category": "手机",
+     *           "brand": "华为",
+     *           "price": 4499,
+     *           "images": "http://image.leyou.com/13123.jpg"
+     *         }
+     *       },
+     *       {
+     *         "_index": "heima_tc",
+     *         "_type": "item",
+     *         "_id": "4",
+     *         "_score": 1,
+     *         "_source": {
+     *           "id": 4,
+     *           "title": "小米Mix2S",
+     *           "category": "手机",
+     *           "brand": "小米",
+     *           "price": 4299,
+     *           "images": "http://image.leyou.com/13123.jpg"
+     *         }
+     *       },
+     *       {
+     *         "_index": "heima_tc",
+     *         "_type": "item",
+     *         "_id": "5",
+     *         "_score": 1,
+     *         "_source": {
+     *           "id": 5,
+     *           "title": "荣耀V10",
+     *           "category": "手机",
+     *           "brand": "华为",
+     *           "price": 2799,
+     *           "images": "http://image.leyou.com/13123.jpg"
+     *         }
+     *       }
+     *     ]
+     *   },
+     *   "aggregations": {
+     *     "popular_brand": {
+     *       "doc_count_error_upper_bound": 0,
+     *       "sum_other_doc_count": 0,
+     *       "buckets": [
+     *         {
+     *           "key": "华为",
+     *           "doc_count": 2
+     *         },
+     *         {
+     *           "key": "小米",
+     *           "doc_count": 2
+     *         },
+     *         {
+     *           "key": "锤子",
+     *           "doc_count": 1
+     *         }
+     *       ]
+     *     }
+     *   }
+     * }
+     */
+    @Test
+    public void testAgg(){
+        NativeSearchQueryBuilder queryBuilder = new NativeSearchQueryBuilder();
+        queryBuilder.addAggregation(AggregationBuilders.terms("popularBrand").field("brand"));
+        AggregatedPage<Item> result = template.queryForPage(queryBuilder.build(), Item.class);
+        //解析items
+        //获取聚合
+        Aggregations aggregations = result.getAggregations();
+        //获取指定名称的聚合
+        //Aggregation popularBrand = aggregations.get("popularBrand");
+        StringTerms popularBrand = aggregations.get("popularBrand");
+        //获取桶
+        List<StringTerms.Bucket> buckets = popularBrand.getBuckets();
+        for (StringTerms.Bucket bucket : buckets) {
+            System.out.println("bucket.getKeyAsString()= "+bucket.getKeyAsString());
+            System.out.println("bucket.getDocCount()= "+bucket.getDocCount());
+        }
 
     }
 }
